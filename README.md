@@ -13,7 +13,12 @@ To import, use `from movefile_restart import movefile_restart`
 From there, you have a couple functions at your disposal:
 
 `movefile_restart.DeleteFile(file_path)`: Queues `file_path` for deletion.
+
 `movefile_restart.MoveFile(from_path, to_path)` or `movefile_restart.RenameFile(from_path, to_path)`: Moves the file from `from_path` to `to_path`.
+
+`movefile_restart.GetFileOperations()`: Get a list of tuples containing the source and destination of all file movings queued.
+
+`movefile_restart.PrintFileOperations()`: Print a list of file operations that are scheduled to occur during reboot.
 
 ## Current Limitations
 

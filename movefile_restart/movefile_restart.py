@@ -2,7 +2,7 @@ import sys
 import os
 
 if sys.platform != "win32":
-    raise OSError("python-movefile-restart module is only supported on Windows systems!")
+    raise OSError("movefile-restart module is only supported on Windows systems!")
 
 import winreg
 
@@ -10,6 +10,14 @@ _registry = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
 _key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_ALL_ACCESS)
 
 def __get_current_values():
+    """Get Values.
+
+    Internal function to get the current values stored inside PendingFileRenameOperations as a giant list of strings.
+
+    Returns:
+        str[]: List of strings in PendingFileRenameOperations
+
+    """
     file_ops_values = None
     i = 0
     while True:
@@ -26,10 +34,29 @@ def __get_current_values():
 
 
 def __set_registry(values):
+    """Set PendingFileRenameOperations.
+
+    Use at your own risk internal function. Takes a list of strings, and writes it to PendingFileRenameOperations.
+
+    Args:
+        values (str[]): List of strings to write to PendingFileRenameOperations key.
+
+    """
     winreg.SetValueEx(_key, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, values)
 
 
 def DeleteFile(file_path):
+    """Queue File for Deletion.
+
+    Adds the Registry information to delete a file on reboot.
+
+    Args:
+        file_path (str): A path to the file to delete.
+
+    Raises:
+        FileNotFoundError: Raised if the file_path doesn't exist.
+
+    """
     file_path = file_path.replace("/", "\\")
     if not (os.path.isfile(file_path)):
         raise FileNotFoundError("Path {} does not exist!".format(file_path))
@@ -40,6 +67,19 @@ def DeleteFile(file_path):
     
 
 def MoveFile(from_path, to_path):
+    """Queue File for Moving.
+
+    Adds the Registry information to move a file on reboot.
+
+    Args:
+        from_path (str): The directory being moved from.
+        to_path (str): The directory being moved to.
+
+    Raises:
+        FileNotFoundError: Raised if the from_path doesn't exist or if the directory of to_path doesn't exist.
+        FileExistsError: Raised if to_path already exists.
+
+    """
     from_path = from_path.replace("/", "\\")
     if not os.path.isfile(from_path):  # Don't move non-existant path
         raise FileNotFoundError("Path {} does not exist!".format(from_path))
@@ -62,11 +102,37 @@ def MoveFile(from_path, to_path):
 
 
 def RenameFile(from_path, to_path):
+    """MoveFile Alias."""
     MoveFile(from_path, to_path)
 
 
+def GetFileOperations():
+    """Get Pending File Operations.
+    
+    Returns a list with tuples of the format (from_path, to_path). If to_path is empty, then the file is being deleted.
+
+    Returns:
+        tuple[]: A list of tuples containing the pending file operations.
+
+    """
+    values = __get_current_values()
+    to_return = []
+    for i in range(int(len(values) / 2)):
+        to_return.append((values[2*i].replace("\\??\\", ""), values[2*i+1].replace("\\??\\", "")))
+    return to_return
+
+
+def PrintFileOperations():
+    """Prints Pending File Operations."""
+    vals = GetFileOperations()
+    for i in vals:
+        if i[1] == "":
+            print("Deleting {}".format(i[0]))
+        else:
+            print("Moving {} to {}".format(i[0], i[1]))
+
+
 if __name__ == "__main__":
-    DeleteFile("C:\\Users\\hammy3502\\Desktop\\a.txt")
-    MoveFile("C:\\Users\\hammy3502\\Desktop\\b.txt", "C:\\Users\\hammy3502\\Desktop\\a.txt")
-    print("Currently, there isn't anything implemented for directly running this file.")
+    print("Currently pending file operations: ")
+    PrintFileOperations()
     sys.exit()
