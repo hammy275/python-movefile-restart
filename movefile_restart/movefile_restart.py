@@ -7,7 +7,13 @@ if sys.platform != "win32":
 import winreg
 
 _registry = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_ALL_ACCESS)
+
+try:
+    _write_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_WRITE)
+    _read_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_READ)
+except PermissionError:
+    raise PermissionError("Permission is denied to read and/or write to Session Manager key.")
+
 
 def __get_current_values():
     """Get Values.
@@ -22,8 +28,8 @@ def __get_current_values():
     i = 0
     while True:
         try:
-            if winreg.EnumValue(_key,i)[0] == "PendingFileRenameOperations":
-                file_ops_values = winreg.EnumValue(_key,i)[1]
+            if winreg.EnumValue(_read_key,i)[0] == "PendingFileRenameOperations":
+                file_ops_values = winreg.EnumValue(_read_key,i)[1]
                 break
         except Exception:
             break
@@ -42,7 +48,7 @@ def __set_registry(values):
         values (str[]): List of strings to write to PendingFileRenameOperations key.
 
     """
-    winreg.SetValueEx(_key, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, values)
+    winreg.SetValueEx(_write_key, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, values)
 
 
 def DeleteFile(file_path):
@@ -130,6 +136,27 @@ def PrintFileOperations():
             print("Deleting {}".format(i[0]))
         else:
             print("Moving {} to {}".format(i[0], i[1]))
+
+
+def RemoveFileOperation(file_op_index):
+    """Remove File Operation from Occuring.
+
+    Args:
+        file_op_index (int): Index of file operation to remove. Same indexes as GetFileOperations().
+
+    Raises:
+        TypeError: file_op_index isn't an integer.
+        IndexError: The passed in index doesn't exist.
+
+    """
+    values = __get_current_values()
+    if not isinstance(file_op_index, int):
+        raise TypeError("Index for operation to remove must be an integer!")
+    try:
+        del values[file_op_index*2:file_op_index*2+2]
+    except IndexError:
+        raise IndexError("Index {} does not exist!".format(str(file_op_index)))  # Re-raising here to be more descriptive for debugging
+    __set_registry(values)
 
 
 if __name__ == "__main__":
