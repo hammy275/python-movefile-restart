@@ -8,13 +8,6 @@ import winreg
 
 _registry = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
 
-try:
-    _write_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_WRITE)
-    _read_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_READ)
-except PermissionError:
-    raise PermissionError("Permission is denied to read and/or write to Session Manager key.")
-
-
 def __get_current_values():
     """Get Values.
 
@@ -24,6 +17,10 @@ def __get_current_values():
         str[]: List of strings in PendingFileRenameOperations
 
     """
+    try:
+        _read_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_READ)
+    except PermissionError:
+        raise PermissionError("Permission Denied to read registry key.")  # Re-raise to make clear to end-user/library user
     file_ops_values = None
     i = 0
     while True:
@@ -48,6 +45,10 @@ def __set_registry(values):
         values (str[]): List of strings to write to PendingFileRenameOperations key.
 
     """
+    try:
+        _write_key = winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_WRITE)
+    except PermissionError:
+        raise PermissionError("Permission Denied to write registry key.")
     winreg.SetValueEx(_write_key, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, values)
 
 
@@ -64,9 +65,16 @@ def DeleteFile(file_path):
 
     """
     file_path = file_path.replace("/", "\\")
-    if not (os.path.isfile(file_path)):
-        raise FileNotFoundError("Path {} does not exist!".format(file_path))
     values = __get_current_values()
+    if not (os.path.isfile(file_path)):
+        values.reverse()
+        try:
+            file_path_index = values.index("\\??\\" + file_path)
+        except IndexError:
+            file_path_index = -1
+        if file_path_index % 2 != 0 or file_path_index == -1:
+            raise FileNotFoundError("Path {} does not exist and is not being created during a move operation!".format(file_path))
+        values.reverse()
     values.append("\\??\\" + file_path)
     values.append("")
     __set_registry(values)
