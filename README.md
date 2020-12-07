@@ -4,7 +4,7 @@ A small library to move, delete, and rename files at Windows restart time.
 
 ## Installation
 
-`pip install -e .` or `pip3 install -e .`, depending on your configuration of Python and Pip.
+`pip install movefile-restart` or `pip3 install movefile-restart`, depending on your configuration of Python and Pip.
 
 ## Usage
 
