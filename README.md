@@ -8,7 +8,7 @@ A small library to move, delete, and rename files at Windows restart time.
 
 ## Usage
 
-To import, use `from movefile_restart import movefile_restart`
+To import, use `import movefile_restart`
 
 From there, you have a couple functions at your disposal:
 
