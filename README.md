@@ -20,6 +20,8 @@ From there, you have a couple functions at your disposal:
 
 `movefile_restart.PrintFileOperations()`: Print a list of file operations that are scheduled to occur during reboot.
 
+`movefile_restart.CheckPermissions()`: Check for read/write permissions to the registry keys needed for this library.
+
 ## Current Limitations
 
 * Files cannot currently be un-queued.
