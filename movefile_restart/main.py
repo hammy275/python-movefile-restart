@@ -28,7 +28,7 @@ def __get_current_values():
             if winreg.EnumValue(_read_key,i)[0] == "PendingFileRenameOperations":
                 file_ops_values = winreg.EnumValue(_read_key,i)[1]
                 break
-        except Exception:
+        except OSError:
             break
         i += 1
     if file_ops_values == None:
@@ -167,7 +167,33 @@ def RemoveFileOperation(file_op_index):
     __set_registry(values)
 
 
+def CheckPermissions():
+    """Get Permissions.
+
+    Gets the permissions for reading/writing the registry as a tuple.
+
+    Returns:
+        (bool, bool): First bool is True/False for reading the key, second is for writing the key.
+
+    """
+    read = True
+    write = True
+    try:
+        winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_READ)
+        try:
+            winreg.OpenKey(_registry, "SYSTEM\\CurrentControlSet\\Control\\Session Manager", 0, winreg.KEY_WRITE)
+        except PermissionError:
+            write = False
+    except PermissionError:
+        read = False
+        write = False  # Due to how this program works, if reading is impossible, so is writing.
+    return (read, write)
+
+
 if __name__ == "__main__":
-    print("Currently pending file operations: ")
-    PrintFileOperations()
+    if CheckPermissions()[0]:
+        print("Currently pending file operations: ")
+        PrintFileOperations()
+    else:
+        print("No read permission on registry key!")
     sys.exit()
