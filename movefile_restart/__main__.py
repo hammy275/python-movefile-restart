@@ -1,6 +1,6 @@
 import sys
 
-from main import CheckPermissions, PrintFileOperations
+from movefile_restart import CheckPermissions, PrintFileOperations
 
 if CheckPermissions()[0]:
     print("Currently pending file operations: ")
