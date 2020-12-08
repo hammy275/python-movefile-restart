@@ -5,7 +5,7 @@ with open("README.md", 'r') as f:
 
 setuptools.setup(
     name="movefile-restart",
-    version="0.6.0",
+    version="1.0.0",
     author="hammy3502",
     author_email="hammy275@gmail.com",
     description="A small library for Windows to queue files to be moved, deleted, or renamed on reboot.",

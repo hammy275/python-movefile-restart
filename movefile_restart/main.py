@@ -52,13 +52,14 @@ def __set_registry(values):
     winreg.SetValueEx(_write_key, "PendingFileRenameOperations", 0, winreg.REG_MULTI_SZ, values)
 
 
-def DeleteFile(file_path):
+def DeleteFile(file_path, check_conflicts=True):
     """Queue File for Deletion.
 
     Adds the Registry information to delete a file on reboot.
 
     Args:
         file_path (str): A path to the file to delete.
+        check_conflicts (bool): Checks file_path to make sure the Delete can happen as supplied. Defaults to True.
 
     Raises:
         FileNotFoundError: Raised if the file_path doesn't exist.
@@ -66,11 +67,11 @@ def DeleteFile(file_path):
     """
     file_path = file_path.replace("/", "\\")
     values = __get_current_values()
-    if not (os.path.isfile(file_path)):
+    if check_conflicts and not (os.path.isfile(file_path)):
         values.reverse()
         try:
             file_path_index = values.index("\\??\\" + file_path)
-        except IndexError:
+        except ValueError:
             file_path_index = -1
         if file_path_index % 2 != 0 or file_path_index == -1:
             raise FileNotFoundError("Path {} does not exist and is not being created during a move operation!".format(file_path))
@@ -80,7 +81,7 @@ def DeleteFile(file_path):
     __set_registry(values)
     
 
-def MoveFile(from_path, to_path):
+def MoveFile(from_path, to_path, check_conflicts=True):
     """Queue File for Moving.
 
     Adds the Registry information to move a file on reboot.
@@ -88,6 +89,7 @@ def MoveFile(from_path, to_path):
     Args:
         from_path (str): The directory being moved from.
         to_path (str): The directory being moved to.
+        check_conflicts (bool): Check from_path and to_path to make sure the Move/Rename can be performed successfully.
 
     Raises:
         FileNotFoundError: Raised if the from_path doesn't exist or if the directory of to_path doesn't exist.
@@ -95,13 +97,13 @@ def MoveFile(from_path, to_path):
 
     """
     from_path = from_path.replace("/", "\\")
-    if not os.path.isfile(from_path):  # Don't move non-existant path
+    if check_conflicts and not os.path.isfile(from_path):  # Don't move non-existant path
         raise FileNotFoundError("Path {} does not exist!".format(from_path))
     to_path = to_path.replace("/", "\\")
-    if not os.path.isdir(os.path.dirname(to_path)):  # Don't move to non-existant dir
+    if check_conflicts and not os.path.isdir(os.path.dirname(to_path)):  # Don't move to non-existant dir
         raise FileNotFoundError("Path {} does not exist to move to!".format(os.path.dirname(to_path)))
     values = __get_current_values()
-    if os.path.isfile(to_path):  # Don't move to already-existing destination unless it will be deleted/moved
+    if check_conflicts and os.path.isfile(to_path):  # Don't move to already-existing destination unless it will be deleted/moved
         values.reverse()
         try:
             to_path_index = values.index("\\??\\" + to_path)
@@ -115,9 +117,9 @@ def MoveFile(from_path, to_path):
     __set_registry(values)
 
 
-def RenameFile(from_path, to_path):
+def RenameFile(from_path, to_path, check_conflicts=True):
     """MoveFile Alias."""
-    MoveFile(from_path, to_path)
+    MoveFile(from_path, to_path, check_conflicts)
 
 
 def GetFileOperations():
@@ -139,6 +141,9 @@ def GetFileOperations():
 def PrintFileOperations():
     """Prints Pending File Operations."""
     vals = GetFileOperations()
+    if not vals:
+        print("There are no currently pending file operations!")
+        return
     for i in vals:
         if i[1] == "":
             print("Deleting {}".format(i[0]))
